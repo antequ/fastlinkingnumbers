@@ -40,11 +40,6 @@ ln -s build/obj2bcc obj2bcc
 
 To build only the `verifycurves` executable, use `make -j verifycurves`. Similarly you can use `make -j obj2bcc` or `make -j libverifycurves` to build the file format converter or the dynamic-link library.
 
-Windows:
-
-We have not tested this on Windows. To get started, you can download the CMake tool from the [CMake download webpage](https://cmake.org/download/).
-Install the compiler of your choice (E.g. Visual Studio), and follow the instructions in the CMake tool to "Configure" and "Generate" the solution. We will update this description once we've tested the Windows build.
-
 ### Shared dynamic-link library
 
 Alternately, you can also dynamically link this project against your code. To do so on Ubuntu, run the following lines after the above:
@@ -149,6 +144,21 @@ Within the OBJ files, control points or polyline vertices must be represented as
 We've included a few example data files in `data/` along with their reference certificates in `results/reference_certificates`. You can run `. test.sh` to generate your own output certificates for these files to compare against the reference certificates. Our extended dataset also has reference certificates included.
 
 Sadly, we do not release unit or other tests in this code release. Modify this code at your own risk, and we suggest you create your own tests.
+
+### Accuracy versus performance tradeoff
+
+The initial settings we provided produce correct linking numbers for our entire dataset and most yarn simulation data we have encountered. However, for certain specific other curve collections, you may need to tune the parameters to increase the accuracy if you do not trust the results. Here are three ways:
+
+To increase accuracy at the cost of performance, you can manually increase the `--barnes_hut_init_beta` and/or `--barnes_hut_beta_limit` parameters from their current default values of 2.0 and 10.0. Increasing beta drastically reduces error of the first Barnes–Hut run, but increases its runtime. For example, try:
+```
+./verifycurves --input data/glove.bcc --output results/glove.txt --barnes_hut_init_beta 5.0 --barnes_hut_beta_limit 10.0
+```
+
+The most accurate, yet slowest, method is to just use direct summation:
+```
+./verifycurves --input data/glove.bcc --output results/glove.txt --method directsum
+```
+
 
 ## Extended input dataset
 
