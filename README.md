@@ -14,9 +14,9 @@ Tested with Ubuntu 18.04, gcc v7.5.0, cmake v3.10.2, gflags v2.2.1, libomp v10.0
 
 ### Required packages:
 * [CMake](https://cmake.org/)
-* [Eigen](https://eigen.tuxfamily.org/)
+* [Eigen](https://eigen.tuxfamily.org/) 3
 * [gflags](https://gflags.github.io/gflags/)
-* OpenMP
+* OpenMP 3.1
 
 You can install them on Ubuntu 18.04 via
 ```
@@ -147,7 +147,7 @@ Sadly, we do not release unit or other tests in this code release. Modify this c
 
 ### Accuracy versus performance tradeoff
 
-The initial settings we provided produce correct linking numbers for our entire dataset and most yarn simulation data we have encountered. However, for certain specific other curve collections, you may need to tune the parameters to increase the accuracy if you do not trust the results. Here are three ways:
+The initial settings we provided produce correct linking numbers for our entire dataset and most yarn simulation data we have encountered. However, for certain specific other curve collections, you may need to tune the parameters to increase the accuracy if you do not trust the results. Here are a few ways:
 
 To increase accuracy at the cost of performance, you can manually increase the `--barnes_hut_init_beta` and/or `--barnes_hut_beta_limit` parameters from their current default values of 2.0 and 10.0. Increasing beta drastically reduces error of the first Barnes–Hut run, but increases its runtime. For example, try:
 ```
