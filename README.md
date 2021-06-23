@@ -1,11 +1,12 @@
 # Fast Linking Numbers
 
+<p align="center"><img src="https://graphics.stanford.edu/papers/fastlinkingnumbers/assets/RepImage.jpg" alt="Fast Linking Numbers" width="480"/></p>
+
 This tool, called `verifycurves`, takes input models that consist of closed-loop curves, and outputs a topology certificate as a `.txt` file. It is based on [Qu and James 2021]. Among the different linking-number computation methods described in [Qu and James 2021], this tool supports using Barnes–Hut or direct summation to evaluate the Gauss linking integral.
 
 Project Webpage: https://graphics.stanford.edu/papers/fastlinkingnumbers/
 
-(Supplementary:) Derivation of Barnes–Hut expansion terms [webpage](https://graphics.stanford.edu/papers/fastlinkingnumbers/assets/Qu2021BarnesHutExpandedTermsReference.pdf)
-
+Supplemental: Derivation of the Two-Tree Barnes–Hut expansion terms used in this implementation [PDF](https://graphics.stanford.edu/papers/fastlinkingnumbers/assets/Qu2021BarnesHutExpandedTermsReference.pdf)
 
 
 ## Installation
@@ -14,7 +15,7 @@ Tested with Ubuntu 18.04, gcc v7.5.0, cmake v3.10.2, gflags v2.2.1, libomp v10.0
 
 ### Required packages:
 * [CMake](https://cmake.org/)
-* [Eigen](https://eigen.tuxfamily.org/) 3
+* [Eigen 3](https://eigen.tuxfamily.org/)
 * [gflags](https://gflags.github.io/gflags/)
 * OpenMP 3.1
 
