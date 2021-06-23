@@ -8,10 +8,11 @@ Project Webpage: https://graphics.stanford.edu/papers/fastlinkingnumbers/
 
 Supplemental: Derivation of the Two-Tree Barnes–Hut expansion terms used in this implementation [PDF](https://graphics.stanford.edu/papers/fastlinkingnumbers/assets/Qu2021BarnesHutExpandedTermsReference.pdf)
 
+Code: https://github.com/antequ/fastlinkingnumbers
 
 ## Installation
 
-Tested with Ubuntu 18.04, gcc v7.5.0, cmake v3.10.2, gflags v2.2.1, libomp v10.0.0, and Eigen v3.3.4.
+For Ubuntu, we tested with Ubuntu 18.04, gcc v7.5.0, CMake v3.10.2, gflags v2.2.1, libomp v10.0.0, and Eigen v3.3.4. For Windows, we tested with Windows 10, Visual Studio Community 2019 v16.10.2, CMake v3.20.5, and gflags v2.2.2, for 64-bit release.
 
 ### Required packages:
 * [CMake](https://cmake.org/)
@@ -24,9 +25,7 @@ You can install them on Ubuntu 18.04 via
 sudo apt-get install libgflags-dev libeigen3-dev libomp-10-dev build-essential cmake -y
 ```
 
-### Building the executable verifycurves tool
-
-Ubuntu:
+### Building the executable verifycurves tool on Ubuntu
 
 From the root source directory, you can build this like any other CMake project with these commands:
 ```
@@ -40,6 +39,16 @@ ln -s build/obj2bcc obj2bcc
 ```
 
 To build only the `verifycurves` executable, use `make -j verifycurves`. Similarly you can use `make -j obj2bcc` or `make -j libverifycurves` to build the file format converter or the dynamic-link library.
+
+### Running on Windows
+
+Precompiled Binaries:
+
+We've uploaded the compiled 64-bit windows binaries [here](https://drive.google.com/file/d/1nLfxRrf1zoVjY3bT1U-xhz6KByn7yd-S/view?usp=sharing). You may need to install the [Microsoft Visual C++ Redistributable for Visual Studio 2019](https://visualstudio.microsoft.com/downloads/#microsoft-visual-c-redistributable-for-visual-studio-2019) runtime libraries if you do not already have them.
+
+Building from the source code:
+
+To build from the source code, download and install [CMake](https://cmake.org/), [Eigen 3](https://eigen.tuxfamily.org/), [gflags](https://gflags.github.io/gflags/), and Microsoft Visual Studio 2019. Make a `build` subdirectory. In `cmake-gui`, set the project source directory and the build subdirectory. Click "Configure", making sure that it finds Eigen3 and gflags. Then click "Generate", then "Open Project". Build the solution, for Release x64, in Visual Studio.
 
 ### Shared dynamic-link library
 

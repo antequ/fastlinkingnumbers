@@ -6,7 +6,9 @@
 #include "BVH.h"
 #include "curve.h"
 
+#ifndef _MSC_VER 
 #include <parallel/algorithm>
+#endif
 #include <utility>
 #include <vector>
 
@@ -98,8 +100,13 @@ GetPotentialLinksUniqueList(const std::vector<Curve> &curves) {
     BoxBoxIntersectorCurve<int> curve_intersector(ncurves);
     Eigen::BVIntersect(tree, tree, curve_intersector);
     if (curve_intersector.results.size() > parallel_threshold) {
+#ifdef _MSC_VER 
+      std::sort(curve_intersector.results.begin(),
+                curve_intersector.results.end());
+#else
       __gnu_parallel::sort(curve_intersector.results.begin(),
                            curve_intersector.results.end());
+#endif
     } else {
       std::sort(curve_intersector.results.begin(),
                 curve_intersector.results.end());

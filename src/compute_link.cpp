@@ -714,12 +714,12 @@ double EvalLinkingNumberOneIter(
   const int moment_index_offset1 = segment_tree1.getBoxArraySize();
   const int moment_index_offset2 = segment_tree2.getBoxArraySize();
   double result = 0.;
-  eval_error = 0;
+  double local_eval_error = 0;
 
 // Note that even though Appendix B.2 of [Qu and James 2021] says 1000 as the
 // minimum size for parallelization, it is fine to just use 100 here.
-#pragma omp parallel for reduction(+:result) reduction(+:eval_error) \
-if(nisize >= 100 && parallel)
+#pragma omp parallel for reduction(+:result) reduction(+:local_eval_error) \
+    if(nisize >= 100 && parallel)
   for (int ni = 0; ni < nisize; ++ni) {
     int node1 = nodes_1[ni];
     int node2 = nodes_2[ni];
@@ -789,7 +789,7 @@ if(nisize >= 100 && parallel)
             EvalFarFieldHOCorrection(moment1, moment2, dr, rdist2, radius1,
                                      radius2, eval_error_without_multiplier);
         eval_error_without_multiplier *= multiplier;
-        eval_error += eval_error_without_multiplier;
+        local_eval_error += eval_error_without_multiplier;
       }
       // Accumulate the multiplier times the three terms added up.
       result += multiplier * local_result;
@@ -810,8 +810,15 @@ if(nisize >= 100 && parallel)
 
       // Subdivide and add the children to the next list for next pass.
       int half_ind = -1;
+#ifdef _MSC_VER
+#pragma omp critical
+      {
+        half_ind = next_inds++;
+      }
+#else
 #pragma omp atomic capture
       half_ind = next_inds++;
+#endif
       if (subdivide_obj1) {
         std::pair<int, int> indices = segment_tree1.getChildrenIndices(node1);
         nodes_1_next[2 * half_ind] = indices.first;
@@ -829,6 +836,7 @@ if(nisize >= 100 && parallel)
   }
   nodes_1_next.resize(2 * next_inds);
   nodes_2_next.resize(2 * next_inds);
+  eval_error = local_eval_error;
   return result;
 }
 
