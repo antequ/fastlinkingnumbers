@@ -121,7 +121,7 @@ Discretize(const std::vector<Curve> &curves,
 #ifdef _MSC_VER
 #pragma omp parallel for reduction(+ : entrycount, avg_coordinate_size)
   for (int i = 0; i < ncurves; ++i) {
-    double min_box_diag = min_box_diags[i];
+    double& min_box_diag = min_box_diags[i];
 #else
 #pragma omp parallel for reduction(+:entrycount, avg_coordinate_size) \
     reduction(min:min_box_diag)
