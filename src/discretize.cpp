@@ -108,13 +108,25 @@ Discretize(const std::vector<Curve> &curves,
   // sum up number of entries
   int entrycount = 0;
   std::vector<std::vector<SplineEntry>> entry_trees(ncurves);
+#ifdef _MSC_VER
+  std::vector<double> min_box_diags(ncurves,
+                                    std::numeric_limits<double>::infinity());
+#else
   double min_box_diag = std::numeric_limits<double>::infinity();
+#endif
   int min_curve_index, min_box_index;
   double avg_coordinate_size = 0.0;
   using std::abs;
   using std::min;
-#pragma omp parallel for reduction(+:entrycount, avg_coordinate_size) reduction(min:min_box_diag)
+#ifdef _MSC_VER
+#pragma omp parallel for reduction(+ : entrycount, avg_coordinate_size)
   for (int i = 0; i < ncurves; ++i) {
+    double min_box_diag = min_box_diags[i];
+#else
+#pragma omp parallel for reduction(+:entrycount, avg_coordinate_size) \
+    reduction(min:min_box_diag)
+  for (int i = 0; i < ncurves; ++i) {
+#endif
     entry_trees[i] = std::vector<SplineEntry>(curves[i].num_segments());
     for (int j = 0; j < curves[i].num_segments(); ++j) {
       const Box3d &bbox = curves[i].get_segment_bounding_box(j);
@@ -132,15 +144,23 @@ Discretize(const std::vector<Curve> &curves,
   avg_coordinate_size /= entrycount * SQRT_OF_THREE;
   const double box_diag_threshold = eps * avg_coordinate_size;
   // use inversion in case min_box_diag is nan.
-  if (!(min_box_diag >= box_diag_threshold)) {
-    std::cerr << "Discretize: Smallest input segment, (" << min_curve_index
-              << "," << min_box_index << ") has a size of " << min_box_diag
-              << ", which is smaller than eps * avg coordinate. Consider "
-                 "combining them into one vertex."
-              << std::endl;
-    throw std::runtime_error("Discretize: Smallest input segment is smaller "
-                             "than eps * avg coordinate. Consider combining.");
+#ifdef _MSC_VER
+  for (int i = 0; i < ncurves; ++i) {
+    double min_box_diag = min_box_diags[i];
+#endif
+    if (!(min_box_diag >= box_diag_threshold)) {
+      std::cerr << "Discretize: Smallest input segment, (" << min_curve_index
+                << "," << min_box_index << ") has a size of " << min_box_diag
+                << ", which is smaller than eps * avg coordinate. Consider "
+                   "combining them into one vertex."
+                << std::endl;
+      throw std::runtime_error(
+          "Discretize: Smallest input segment is smaller "
+          "than eps * avg coordinate. Consider combining.");
+    }
+#ifdef _MSC_VER
   }
+#endif
 
   BoxBoxIntersectorForSegments intersector;
 
@@ -161,10 +181,10 @@ Discretize(const std::vector<Curve> &curves,
           entry_trees[i].begin(), entry_trees[i].end());
     }
     npairs = 0;
-    min_box_diag = std::numeric_limits<double>::infinity();
 // intersect curves
-#pragma omp parallel for reduction(+ : npairs) reduction(min:min_box_diag) private(intersector)
+#pragma omp parallel for reduction(+ : npairs) private(intersector)
     for (int i = 0; i < ncurves; ++i) {
+      double min_box_diag = std::numeric_limits<double>::infinity();
       intersector.reset();
       for (int j : potential_links_list[i]) {
         Eigen::BVIntersect(trees[i], trees[j], intersector);
@@ -195,21 +215,25 @@ Discretize(const std::vector<Curve> &curves,
         }
       }
       npairs += intersector.npairs;
+      // Use this expression, which is also triggered if min_box_diag is NaN.
+      if (!(min_box_diag >= box_diag_threshold)) {
+#pragma omp critical
+        {
+          std::cout << "Discretize: Smallest segment is smaller than eps * avg "
+                       "coordinate. Perhaps curves are too close."
+                    << std::endl;
+          throw std::runtime_error("Discretize: Smallest segment is smaller "
+                                   "than eps * avg coordinate. "
+                                   "Perhaps curves are too close.");
+        }
+      }
     }
     if ((npairs % 2) != 0) {
       std::cout << "Error: npairs is odd: " << npairs << "." << std::endl;
     }
     std::cout << "Iteration " << iteration + 1 << ", " << npairs / 2
               << " overlaps." << std::endl;
-    // Use this expression, which is also triggered if min_box_diag is NaN.
-    if (!(min_box_diag >= box_diag_threshold)) {
-      std::cout << "Discretize: Smallest segment is smaller than eps * avg "
-                   "coordinate. Perhaps curves are too close."
-                << std::endl;
-      throw std::runtime_error(
-          "Discretize: Smallest segment is smaller than eps * avg coordinate. "
-          "Perhaps curves are too close.");
-    }
+
     if (npairs == 0) {
       std::cout << "Finished after " << iteration + 1 << " iteration(s)."
                 << std::endl;

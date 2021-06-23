@@ -168,7 +168,7 @@ void Model::ImportFromObjFile(const std::string &filename,
         break;
       line = trimfnc(line);
       std::stringstream::pos_type curr_pos = linestream.tellp();
-      linestream.seekp(curr_pos - 1);
+      linestream.seekp(curr_pos - static_cast<std::streamoff>(1));
       // Note that this will append an extra space since the character before
       // '\\' is often a space.
       linestream << ' ' << line;

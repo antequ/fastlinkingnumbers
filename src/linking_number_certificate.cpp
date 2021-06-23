@@ -137,9 +137,15 @@ void ComputeLinkingNumbersBarnesHut(
   // When the number of curves is small, we parallelize the tree.
   bool use_parallel_tree_eval = ncurves < NCURVES_PARALLEL_THRESHOLD;
   // Otherwise, we parallelize iterating the loop pairs
-#pragma omp parallel for reduction(+:off_integer_error)\
+#ifdef _MSC_VER
+#pragma omp parallel for reduction(+:off_integer_error) \
+    if (!use_parallel_tree_eval)
+  for (int index = 0; index < ncurves; ++index) {
+#else
+#pragma omp parallel for reduction(+:off_integer_error) \
     reduction(max:max_off_integer_error) if (!use_parallel_tree_eval)
   for (int index = 0; index < ncurves; ++index) {
+#endif
     int i = index;
     // Load balancing index swap, because we use static scheduling with OpenMP.
     if (i % 2 == 0) {
@@ -179,14 +185,23 @@ void ComputeLinkingNumbersBarnesHut(
       double nearest_int = std::round(linking_number);
       double local_off_integer_error = std::abs(linking_number - nearest_int);
       off_integer_error += local_off_integer_error;
+#ifndef _MSC_VER
       max_off_integer_error =
           std::max(max_off_integer_error, local_off_integer_error);
+#endif
       // Push the value into the table if it's nonzero.
       // If it is NaN, we output an error message but proceed quietly.
       if (!(std::abs(nearest_int) < 0.25)) {
-        int out_ind;
+        size_t out_ind;
+#ifdef _MSC_VER
+#pragma omp critical
+        {
+          out_ind = current_output_index++;
+        }
+#else
 #pragma omp atomic capture
         out_ind = current_output_index++;
+#endif
         out_triplet_list[out_ind] = Eigen::Triplet<int>(j, i, nearest_int);
         if (std::isnan(nearest_int)) {
 #pragma omp critical
@@ -202,8 +217,11 @@ void ComputeLinkingNumbersBarnesHut(
     off_integer_error /= nplinkssize;
     std::cout << "Linking-Number Computation, Mean Off-Integer Error: "
               << off_integer_error << std::endl;
+
+#ifndef _MSC_VER
     std::cout << "Linking-Number Computation, Max  Off-Integer Error: "
               << max_off_integer_error << std::endl;
+#endif
   }
   out_triplet_list.resize(current_output_index);
   out_result = Eigen::SparseMatrix<int>(ncurves, ncurves);
@@ -244,9 +262,14 @@ void ComputeLinkingNumbersDirectSum(
   // When the number of curves is small, we parallelize the direct sum.
   bool use_parallel_direct_sum = ncurves < NCURVES_PARALLEL_THRESHOLD;
   // Otherwise, we parallelize iterating the loop pairs.
-#pragma omp parallel for if(!use_parallel_direct_sum) \
-    reduction(+:off_integer_error) reduction(max:max_off_integer_error)
+#ifdef _MSC_VER
+#pragma omp parallel for reduction(+:off_integer_error) if (!use_parallel_direct_sum)
   for (int index = 0; index < ncurves; ++index) {
+#else
+#pragma omp parallel for reduction(+:off_integer_error) \
+    reduction(max:max_off_integer_error) if (!use_parallel_direct_sum)
+  for (int index = 0; index < ncurves; ++index) {
+#endif
     int i = index;
     // Load balancing index swap, because we use static scheduling with OpenMP.
     if (i % 2 == 0) {
@@ -271,14 +294,23 @@ void ComputeLinkingNumbersDirectSum(
       double nearest_int = std::round(linking_number);
       double local_off_integer_error = std::abs(linking_number - nearest_int);
       off_integer_error += local_off_integer_error;
+#ifndef _MSC_VER
       max_off_integer_error =
           std::max(max_off_integer_error, local_off_integer_error);
+#endif
       // Push the value into the table if it's nonzero.
       // If it is NaN, we output an error message but proceed quietly.
       if (!(std::abs(nearest_int) < 0.25)) {
-        int out_ind;
+        size_t out_ind;
+#ifdef _MSC_VER
+#pragma omp critical
+        {
+          out_ind = current_output_index++;
+        }
+#else
 #pragma omp atomic capture
         out_ind = current_output_index++;
+#endif
         out_triplet_list[out_ind] = Eigen::Triplet<int>(j, i, nearest_int);
         if (std::isnan(nearest_int)) {
 #pragma omp critical
@@ -290,11 +322,16 @@ void ComputeLinkingNumbersDirectSum(
       }
     }
   }
-  off_integer_error /= nplinkssize;
-  std::cout << "Linking-Number Computation, Mean Off-Integer Error: "
-            << off_integer_error << std::endl;
-  std::cout << "Linking-Number Computation, Max  Off-Integer Error: "
-            << max_off_integer_error << std::endl;
+
+  if (nplinkssize > 0) {
+    off_integer_error /= nplinkssize;
+    std::cout << "Linking-Number Computation, Mean Off-Integer Error: "
+              << off_integer_error << std::endl;
+#ifndef _MSC_VER
+    std::cout << "Linking-Number Computation, Max  Off-Integer Error: "
+              << max_off_integer_error << std::endl;
+#endif
+  }
   out_triplet_list.resize(current_output_index);
   out_result = Eigen::SparseMatrix<int>(ncurves, ncurves);
   out_result.setFromTriplets(out_triplet_list.begin(), out_triplet_list.end());
