@@ -1,0 +1,3 @@
+The knitted yarn models (glove.bcc, knittubebroken.bcc, and knittubeinit.bcc)
+are modified from Cem Yuksel's Yarn-level Cloth Models located at
+http://www.cemyuksel.com/research/yarnmodels/.
