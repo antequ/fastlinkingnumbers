@@ -1,5 +1,7 @@
 # Fast Linking Numbers
 
+This branch is **solely built for the purposes of reproducing Tables 1 and 2 in the paper**, for the [Graphics Replicability Stamp Initiative](http://www.replicabilitystamp.org/). The original code is in the master branch, which you can access [here](https://github.com/antequ/fastlinkingnumbers).
+
 <p align="center"><img src="https://graphics.stanford.edu/papers/fastlinkingnumbers/assets/RepImage.jpg" alt="Fast Linking Numbers" width="480"/></p>
 
 This tool, called `verifycurves`, takes input models that consist of closed-loop curves, and outputs a topology certificate as a `.txt` file. It is based on [Qu and James 2021]. Among the different linking-number computation methods described in [Qu and James 2021], this tool supports using Barnes–Hut or direct summation to evaluate the Gauss linking integral.
@@ -10,7 +12,7 @@ Supplemental: Derivation of the Two-Tree Barnes–Hut expansion terms used in th
 
 Original Code: https://github.com/antequ/fastlinkingnumbers
 
-This branch is solely built for the purposes of reproducing Tables 1 and 2 in the paper, for the [Graphics Replicability Stamp Initiative](http://www.replicabilitystamp.org/).
+
 
 ## Instructions
 
