@@ -3,6 +3,7 @@
 echo "This code is from the replicability branch of the code release:"
 echo "https://github.com/antequ/fastlinkingnumbers/tree/replicability,"
 echo "and the dataset directory comes directly from the released dataset:"
+echo "https://drive.google.com/file/d/1tTSrzwP92xYxmVXVc6bx3GGEJ0srukp9/view"
 echo ""
 
 echo "Installing prerequisites (needs sudo access) ..."
