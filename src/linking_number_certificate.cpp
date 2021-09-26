@@ -11,6 +11,7 @@
 #include "model.h"
 #include "potential_link_search.h"
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -99,11 +100,14 @@ void DiscretizeAndGetNewPotentialLinks(
 /// @param [out] out_result is a sparse lower triangular (row < col) matrix that
 ///     will be initialized to the right size, with its values set to the
 ///     linking numbers.
+/// Plus others to help with replicability.
 void ComputeLinkingNumbersBarnesHut(
     const std::vector<Curve> &discretized_curves,
     const std::vector<std::vector<int>> &potential_links_unique_per_curve,
     double barnes_hut_init_beta, double barnes_hut_beta_limit,
-    Eigen::SparseMatrix<int> &out_result) {
+    Eigen::SparseMatrix<int> &out_result, bool compare_against_reference,
+    const Eigen::SparseMatrix<int> &reference, double &avg_computed_error,
+    double &max_computed_error) {
   const int ncurves = discretized_curves.size();
   // Precompute segment trees and moments, and count the number of potentially
   // linked loop pairs.
@@ -129,21 +133,20 @@ void ComputeLinkingNumbersBarnesHut(
   std::vector<Eigen::Triplet<int>> out_triplet_list(nplinkssize);
   size_t current_output_index = 0;
 
-  // Note: We print the off-integer errors as a guide for the user. This is NOT
-  // the error metric we used in our paper [Qu et al. 2021]. For our paper, we
-  // just compared each computed value against a ground-truth sparse matrix.
-  double off_integer_error = 0;
-  double max_off_integer_error = 0;
+  // If compare_against_reference is set, we calculate the error against
+  // a reference; otherwise this is set to the off integer error.
+  double average_error = 0;
+  double max_error = 0;
   // When the number of curves is small, we parallelize the tree.
   bool use_parallel_tree_eval = ncurves < NCURVES_PARALLEL_THRESHOLD;
   // Otherwise, we parallelize iterating the loop pairs
 #ifdef _MSC_VER
-#pragma omp parallel for reduction(+:off_integer_error) \
+#pragma omp parallel for reduction(+:average_error) \
     if (!use_parallel_tree_eval)
   for (int index = 0; index < ncurves; ++index) {
 #else
-#pragma omp parallel for reduction(+:off_integer_error) \
-    reduction(max:max_off_integer_error) if (!use_parallel_tree_eval)
+#pragma omp parallel for reduction(+:average_error) \
+    reduction(max:max_error) if (!use_parallel_tree_eval)
   for (int index = 0; index < ncurves; ++index) {
 #endif
     int i = index;
@@ -183,11 +186,12 @@ void ComputeLinkingNumbersBarnesHut(
             target_beta * target_beta, error_est, use_parallel_tree_eval);
       }
       double nearest_int = std::round(linking_number);
-      double local_off_integer_error = std::abs(linking_number - nearest_int);
-      off_integer_error += local_off_integer_error;
+      double reference_val =
+          compare_against_reference ? reference.coeff(j, i) : nearest_int;
+      double local_error = std::abs(linking_number - reference_val);
+      average_error += local_error;
 #ifndef _MSC_VER
-      max_off_integer_error =
-          std::max(max_off_integer_error, local_off_integer_error);
+      max_error = std::max(max_error, local_error);
 #endif
       // Push the value into the table if it's nonzero.
       // If it is NaN, we output an error message but proceed quietly.
@@ -195,9 +199,7 @@ void ComputeLinkingNumbersBarnesHut(
         size_t out_ind;
 #ifdef _MSC_VER
 #pragma omp critical
-        {
-          out_ind = current_output_index++;
-        }
+        { out_ind = current_output_index++; }
 #else
 #pragma omp atomic capture
         out_ind = current_output_index++;
@@ -214,15 +216,10 @@ void ComputeLinkingNumbersBarnesHut(
     }
   }
   if (nplinkssize > 0) {
-    off_integer_error /= nplinkssize;
-    std::cout << "Linking-Number Computation, Mean Off-Integer Error: "
-              << off_integer_error << std::endl;
-
-#ifndef _MSC_VER
-    std::cout << "Linking-Number Computation, Max  Off-Integer Error: "
-              << max_off_integer_error << std::endl;
-#endif
+    average_error /= nplinkssize;
   }
+  avg_computed_error = average_error;
+  max_computed_error = max_error;
   out_triplet_list.resize(current_output_index);
   out_result = Eigen::SparseMatrix<int>(ncurves, ncurves);
   out_result.setFromTriplets(out_triplet_list.begin(), out_triplet_list.end());
@@ -304,9 +301,7 @@ void ComputeLinkingNumbersDirectSum(
         size_t out_ind;
 #ifdef _MSC_VER
 #pragma omp critical
-        {
-          out_ind = current_output_index++;
-        }
+        { out_ind = current_output_index++; }
 #else
 #pragma omp atomic capture
         out_ind = current_output_index++;
@@ -338,15 +333,27 @@ void ComputeLinkingNumbersDirectSum(
 }
 
 /**
- * This method computes the linking-number certificate from an input model. By
- * default, it will use Barnes–Hut (Section 3.4.4, Appendix B.2, and the
- * Supplemental docment, of [Qu and James 2021]) to compute the linking
- * number. The force_direct_sum option forces it to use Direct Summation
- * (Section 3.4.2 of [Qu and James 2021]) instead of Barnes–Hut.
+ * This method computes the linking-number certificate from an input model. It
+ * will use Barnes–Hut (Section 3.4.4, Appendix B.2, and the Supplemental
+ * docment, of [Qu and James 2021]), and/or Direct Summation (Section 3.4.2 of
+ * [Qu and James 2021]), to compute the linking number.
  *
  * @param [in] model is the input collection of curves.
+ * @param [in] compare_against_reference determines whether to use a reference
+ * in computing error.
+ * @param [in] reference is the reference certificate matrix
+ * @param [out] avg_computed_error is the computed average Barnes–Hut error
+ * @param [out] max_computed_error is the computed max Barnes–Hut error
+ * @param [out] N_D is the number of discretized segments.
+ * @param [out] P is the number of potentially-linked loop pairs
+ * @param [out] pls_time is the PLS runtime.
+ * @param [out] discr_time is the Discretization runtime.
+ * @param [out] ds_time is the Direct Summation runtime.
+ * @param [out] bh_time is the Barnes-Hut runtime.
+ * @param [in] compute_both determines whether to use both Direct Summation
+ *     and Barnes–Hut. When this is true, it supercedes force_direct_sum.
  * @param [in] force_direct_sum determines whether to use Direct Summation
- *     instead of Barnes–Hut.
+ *     instead of Barnes–Hut, when compute_both is false.
  * @param [in] barnes_hut_init_beta is the initial Barnes–Hut beta parameter
  *     in the first run, before error estimation.
  * @param [in] barnes_hut_beta_limit is the highest allowed beta to be used in
@@ -355,27 +362,75 @@ void ComputeLinkingNumbersDirectSum(
  * @post the certificate_matrix_ matrix is created with the linking numbers
  *     between curves.
  */
-void LinkingNumberCertificate::ComputeFromModel(const Model &model,
-                                                bool force_direct_sum,
-                                                double barnes_hut_init_beta,
-                                                double barnes_hut_beta_limit) {
+void LinkingNumberCertificate::ComputeFromModelReplicability(
+    const Model &model, bool compare_against_reference,
+    const Eigen::SparseMatrix<int> &reference, double &avg_computed_error,
+    double &max_computed_error, int &N_D, int &P, double &pls_time,
+    double &discr_time, double &ds_time, double &bh_time, bool compute_both,
+    bool force_direct_sum, double barnes_hut_init_beta,
+    double barnes_hut_beta_limit) {
   std::cout << "Starting Potential Link Search." << std::endl;
+  std::chrono::steady_clock::time_point time_begin, time_end;
+  int64_t duration_us;
+  time_begin = std::chrono::steady_clock::now();
   std::vector<std::vector<int>> potential_links = PotentialLinkSearch(model);
+  time_end = std::chrono::steady_clock::now();
+  duration_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                    time_end - time_begin)
+                    .count();
+  pls_time = 1e-6 * duration_us;
   std::vector<Curve> discretized_curves;
   std::vector<std::vector<int>> potential_links_unique_per_curve;
   std::cout << "Starting Discretization." << std::endl;
+  time_begin = std::chrono::steady_clock::now();
   DiscretizeAndGetNewPotentialLinks(model, potential_links, discretized_curves,
                                     potential_links_unique_per_curve);
-  if (force_direct_sum) {
+  time_end = std::chrono::steady_clock::now();
+  duration_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                    time_end - time_begin)
+                    .count();
+  discr_time = 1e-6 * duration_us;
+  // Compute P
+  P = 0;
+  for (int i = 0; i < potential_links_unique_per_curve.size(); ++i) {
+    P += potential_links_unique_per_curve[i].size();
+  }
+  // Compute N_D
+  N_D = 0;
+  for (int i = 0; i < discretized_curves.size(); ++i) {
+    N_D += discretized_curves[i].num_segments();
+  }
+  if (compute_both || force_direct_sum) {
+    // Reset the matrix for performance measurements.
+    certificate_matrix_.setZero();
+    certificate_matrix_.data().squeeze();
     std::cout << "Starting Direct Summation." << std::endl;
+    time_begin = std::chrono::steady_clock::now();
     ComputeLinkingNumbersDirectSum(discretized_curves,
                                    potential_links_unique_per_curve,
                                    certificate_matrix_);
-  } else {
+    time_end = std::chrono::steady_clock::now();
+    duration_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                      time_end - time_begin)
+                      .count();
+    ds_time = 1e-6 * duration_us;
+  }
+  if (compute_both || !force_direct_sum) {
+    // Reset the matrix for performance measurements.
+    certificate_matrix_.setZero();
+    certificate_matrix_.data().squeeze();
     std::cout << "Starting Barnes–Hut." << std::endl;
+    time_begin = std::chrono::steady_clock::now();
     ComputeLinkingNumbersBarnesHut(
         discretized_curves, potential_links_unique_per_curve,
-        barnes_hut_init_beta, barnes_hut_beta_limit, certificate_matrix_);
+        barnes_hut_init_beta, barnes_hut_beta_limit, certificate_matrix_,
+        compare_against_reference, reference, avg_computed_error,
+        max_computed_error);
+    time_end = std::chrono::steady_clock::now();
+    duration_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                      time_end - time_begin)
+                      .count();
+    bh_time = 1e-6 * duration_us;
   }
   // Prune any zero entries.
   certificate_matrix_.prune(1);
@@ -484,8 +539,10 @@ void LinkingNumberCertificate::ExportToFile(const std::string &filename) const {
  * @post the certificate_matrix_ matrix is created with the contents of the
  *     input file.
  */
-void LinkingNumberCertificate::ImportFromFile(const std::string &filename) {
+const Eigen::SparseMatrix<int> &
+LinkingNumberCertificate::ImportFromFile(const std::string &filename) {
   ReadMatrix(filename, certificate_matrix_);
+  return certificate_matrix_;
 }
 
 /**

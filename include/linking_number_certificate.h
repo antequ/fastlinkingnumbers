@@ -43,6 +43,44 @@ public:
   LinkingNumberCertificate(const std::string &filename);
 
   /**
+   * This method computes the linking-number certificate from an input model. It
+   * will use Barnes–Hut (Section 3.4.4, Appendix B.2, and the Supplemental
+   * docment, of [Qu and James 2021]), and/or Direct Summation (Section 3.4.2 of
+   * [Qu and James 2021]), to compute the linking number.
+   *
+   * @param [in] model is the input collection of curves.
+   * @param [in] compare_against_reference determines whether to use a reference
+   * in computing error.
+   * @param [in] reference is the reference certificate matrix
+   * @param [out] avg_computed_error is the computed average Barnes–Hut error
+   * @param [out] max_computed_error is the computed max Barnes–Hut error
+   * @param [out] N_D is the number of discretized segments.
+   * @param [out] P is the number of potentially-linked loop pairs
+   * @param [out] pls_time is the PLS runtime.
+   * @param [out] discr_time is the Discretization runtime.
+   * @param [out] ds_time is the Direct Summation runtime.
+   * @param [out] bh_time is the Barnes-Hut runtime.
+   * @param [in] compute_both determines whether to use both Direct Summation
+   *     and Barnes–Hut. When this is true, it supercedes force_direct_sum.
+   * @param [in] force_direct_sum determines whether to use Direct Summation
+   *     instead of Barnes–Hut, when compute_both is false.
+   * @param [in] barnes_hut_init_beta is the initial Barnes–Hut beta parameter
+   *     in the first run, before error estimation.
+   * @param [in] barnes_hut_beta_limit is the highest allowed beta to be used in
+   *     Barnes–Hut.
+   *
+   * @post the certificate_matrix_ matrix is created with the linking numbers
+   *     between curves.
+   */
+  void ComputeFromModelReplicability(
+      const Model &model, bool compare_against_reference,
+      const Eigen::SparseMatrix<int> &reference, double &avg_computed_error,
+      double &max_computed_error, int &N_D, int &P, double &pls_time,
+      double &discr_time, double &ds_time, double &bh_time, bool compute_both,
+      bool force_direct_sum, double barnes_hut_init_beta,
+      double barnes_hut_beta_limit);
+
+  /**
    * This method computes the linking-number certificate from an input model. By
    * default, it will use Barnes–Hut (Section 3.4.4, Appendix B.2, and the
    * Supplemental docment, of [Qu and James 2021]) to compute the linking
@@ -62,7 +100,20 @@ public:
    */
   void ComputeFromModel(const Model &model, bool force_direct_sum = false,
                         double barnes_hut_init_beta = 2.0,
-                        double barnes_hut_beta_limit = 10.0);
+                        double barnes_hut_beta_limit = 10.0) {
+
+    double avg_computed_error;
+    double max_computed_error;
+    Eigen::SparseMatrix<int> reference;
+    int N_D, P;
+    double pls_time, discr_time, ds_time, bh_time;
+
+    ComputeFromModelReplicability(
+        model, false /* compare_against_reference */, reference,
+        avg_computed_error, max_computed_error, N_D, P, pls_time, discr_time,
+        ds_time, bh_time, false /* compute_both */, force_direct_sum,
+        barnes_hut_init_beta, barnes_hut_beta_limit);
+  }
 
   /**
    * This method, ExportToFile, exports the linking-number certificate to a
@@ -83,10 +134,11 @@ public:
    * order in the triplets so that the outputs are naturally in ascending order.
    *
    * @param [in] filename is the name of the input certificate text file.
+   * @returns the certificate matrix with the contents of the input certificate.
    * @post the certificate_matrix_ matrix is created with the contents of the
    *     input file.
    */
-  void ImportFromFile(const std::string &filename);
+  const Eigen::SparseMatrix<int> &ImportFromFile(const std::string &filename);
 
   /**
    * This method, ExportDiffsToFiles, compares against another

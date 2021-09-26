@@ -1,0 +1,21 @@
+Model, N_I, N_D
+"Alien Sweater (Initial)", 139506, 143411
+"Alien Sweater (Final)", 139506, 143218
+"Sheep Sweater", 729628, 801773
+"Sweater", 271902, 296942
+"Glove", 58537, 65933
+"Knit Tube (Initial)", 18228, 18941
+"Knit Tube (Final)", 18228, 27625
+"Chainmail (Initial)", 211680, 211680
+"Chainmail (Final)", 211680, 212552
+"Rubber Bands", 51200, 51200
+"Double-Helix Ribbon λ=10, 200K Segs", 200000, 200000
+"Double-Helix Ribbon λ=1K, 200K Segs", 200000, 200000
+"Double-Helix Ribbon λ=10, 20M Segs", 20000000, 20000000
+"Double-Helix Ribbon λ=1K, 20M Segs", 20000000, 20000000
+"Thick Square Link, 500K Segs", 500000, 500000
+"Thick Square Link, 4M Segs", 4000000, 4000000
+"Torus λ=1M, 20M Segs", 20000000, 20000000
+"Torus λ=0,  40M Segs", 40000000, 40000000
+"Woundball ν=1K,  1M Segs", 1000000, 1000000
+"Woundball ν=10K, 2M Segs", 2000000, 2000000

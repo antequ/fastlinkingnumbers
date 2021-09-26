@@ -36,6 +36,21 @@ target_link_libraries(obj2bcc
     Eigen3::Eigen
     gflags)
 
+project(replicability
+    VERSION 1.0.0
+    DESCRIPTION
+    "Code Replicability Demo for Generating Table 1 in Paper")
+
+add_executable(replicability
+    ${CMAKE_CURRENT_SOURCE_DIR}/replicability_script.cpp
+    ${MODEL_FILES}
+    ${VERIFY_FILES})
+
+target_link_libraries(replicability
+    Eigen3::Eigen
+    gflags
+    OpenMP::OpenMP_CXX)
+
 project(libverifycurves
     VERSION 1.0.0
     DESCRIPTION

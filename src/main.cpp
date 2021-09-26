@@ -50,8 +50,7 @@ int main(int argc, char **argv) {
               << " Method." << std::endl;
     std::chrono::steady_clock::time_point compute_begin =
         std::chrono::steady_clock::now();
-    certificate.ComputeFromModel(model, use_direct_sum,
-                                 FLAGS_barnes_hut_init_beta,
+    certificate.ComputeFromModel(model, use_direct_sum, FLAGS_barnes_hut_init_beta,
                                  FLAGS_barnes_hut_beta_limit);
     std::chrono::steady_clock::time_point compute_end =
         std::chrono::steady_clock::now();
