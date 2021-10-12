@@ -41,6 +41,7 @@ typedef Eigen::AlignedBox<double, 3> Box3d;
 class Curve {
 
 public:
+
   /**
    * The default constructor generates an empty, unlooped, B-Spline curve.
    */
@@ -179,12 +180,13 @@ public:
   void set_segment_type(SegmentType type) { segment_type_ = type; }
 
 private:
-  // q_ is the list of control points.
-  std::vector<Point3> q_;
-
   // This value indicates whether the control points are B-Splines, uniform
   // Catmull–Rom splines, Bezier curves, or polylines.
   SegmentType segment_type_ = SegmentType::BSpline;
+  // q_ is the list of control points.
+  std::vector<Point3> q_;
+
+  
 
   // This indicates whether this curve is a closed loop.
   bool looped_ = false;

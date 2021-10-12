@@ -23,6 +23,8 @@ namespace VerifyCurves {
  */
 class Model {
 public:
+
+  
   /**
    * The default constructor generates an empty list of curves.
    */
@@ -65,6 +67,14 @@ public:
    */
   void ImportFromObjFile(const std::string &filename, SegmentType segment_type);
 
+  /**
+   * These two methods get and set the segment spline type for the model, assuming they all have the type of the first curve.
+   * For models created from BCC, this is always the case.
+   * whether the control points are B-Splines, uniform Catmull–Rom splines,
+   * Bezier curves, or polylines.
+   */
+  SegmentType get_segment_type() const { return segment_type_; }
+
 private:
   // These methods enable importing from and exporting to BCC files.
   void ImportBccFile(const std::string &filename);
@@ -72,6 +82,7 @@ private:
 
   // Curve data is stored in curves_.
   std::vector<Curve> curves_;
+  SegmentType segment_type_ = SegmentType::BSpline;
 };
 
 } // namespace VerifyCurves

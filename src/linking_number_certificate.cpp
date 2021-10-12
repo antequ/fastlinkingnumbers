@@ -9,6 +9,7 @@
 #include "compute_link.h"
 #include "discretize.h"
 #include "model.h"
+#include "curve.h" // for SegmentType
 #include "potential_link_search.h"
 
 #include <fstream>
@@ -363,9 +364,17 @@ void LinkingNumberCertificate::ComputeFromModel(const Model &model,
   std::vector<std::vector<int>> potential_links = PotentialLinkSearch(model);
   std::vector<Curve> discretized_curves;
   std::vector<std::vector<int>> potential_links_unique_per_curve;
+
+  if(model.get_segment_type() != SegmentType::Polyline){
   std::cout << "Starting Discretization." << std::endl;
   DiscretizeAndGetNewPotentialLinks(model, potential_links, discretized_curves,
                                     potential_links_unique_per_curve);
+                                    }
+  else{
+    std::cout << "Skipping Discretization for Polylines." << std::endl;
+    discretized_curves = model.GetCurves();
+    potential_links_unique_per_curve = potential_links;
+  }
   if (force_direct_sum) {
     std::cout << "Starting Direct Summation." << std::endl;
     ComputeLinkingNumbersDirectSum(discretized_curves,

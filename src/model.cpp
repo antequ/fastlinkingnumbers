@@ -46,6 +46,7 @@ void Model::ImportFromFile(const std::string &filename) {
   int bcc_ext = strcmp(fileext.c_str(), ".bcc");
   if (bcc_ext == 0) {
     ImportBccFile(filename);
+    segment_type_ = GetCurves()[0].get_segment_type();
   } else {
     std::cerr << "File extension for import must be .bcc: " << filename
               << std::endl;
@@ -145,6 +146,7 @@ void Model::ImportFromObjFile(const std::string &filename,
   int first_vid = -1;
   int last_vid = -1;
   curve.set_segment_type(segment_type);
+  segment_type_ = segment_type;
   while (true) {
     if (!std::getline(file, line))
       break;
