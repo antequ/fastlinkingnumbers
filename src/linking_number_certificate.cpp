@@ -357,15 +357,22 @@ void ComputeLinkingNumbersDirectSum(
  */
 void LinkingNumberCertificate::ComputeFromModel(const Model &model,
                                                 bool force_direct_sum,
+                                                bool discretize,
                                                 double barnes_hut_init_beta,
                                                 double barnes_hut_beta_limit) {
   std::cout << "Starting Potential Link Search." << std::endl;
   std::vector<std::vector<int>> potential_links = PotentialLinkSearch(model);
   std::vector<Curve> discretized_curves;
   std::vector<std::vector<int>> potential_links_unique_per_curve;
+  if (discretize){
   std::cout << "Starting Discretization." << std::endl;
   DiscretizeAndGetNewPotentialLinks(model, potential_links, discretized_curves,
                                     potential_links_unique_per_curve);
+  } else {
+    std::cout << "Skipping Discretization." << std::endl;
+    discretized_curves = model.GetCurves();
+    potential_links_unique_per_curve = potential_links;
+  }
   if (force_direct_sum) {
     std::cout << "Starting Direct Summation." << std::endl;
     ComputeLinkingNumbersDirectSum(discretized_curves,

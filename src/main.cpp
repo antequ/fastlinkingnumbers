@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
     std::cerr << "Invalid method: '" << FLAGS_method << "'." << std::endl;
     throw std::runtime_error("Invalid method encountered.");
   }
+
   LinkingNumberCertificate certificate;
 
   // Time and compute the linking-number certificate.
@@ -50,7 +51,9 @@ int main(int argc, char **argv) {
               << " Method." << std::endl;
     std::chrono::steady_clock::time_point compute_begin =
         std::chrono::steady_clock::now();
-    certificate.ComputeFromModel(model, use_direct_sum,
+    certificate.ComputeFromModel(model,
+                                 use_direct_sum,
+                                 FLAGS_discretize,
                                  FLAGS_barnes_hut_init_beta,
                                  FLAGS_barnes_hut_beta_limit);
     std::chrono::steady_clock::time_point compute_end =
