@@ -361,17 +361,22 @@ void LinkingNumberCertificate::ComputeFromModel(const Model &model,
                                                 double barnes_hut_init_beta,
                                                 double barnes_hut_beta_limit) {
   std::cout << "Starting Potential Link Search." << std::endl;
-  std::vector<std::vector<int>> potential_links = PotentialLinkSearch(model);
   std::vector<Curve> discretized_curves;
   std::vector<std::vector<int>> potential_links_unique_per_curve;
-  if (discretize){
-  std::cout << "Starting Discretization." << std::endl;
-  DiscretizeAndGetNewPotentialLinks(model, potential_links, discretized_curves,
-                                    potential_links_unique_per_curve);
+  if (discretize) {
+    std::vector<std::vector<int>> potential_links = PotentialLinkSearch(model);
+    std::cout << "Starting Discretization." << std::endl;
+    DiscretizeAndGetNewPotentialLinks(model, potential_links,
+                                      discretized_curves,
+                                      potential_links_unique_per_curve);
   } else {
+    // Perform PLS where each pair appears only once, and then skip
+    // discretization.
+    PrecomputeCurveBoundingBoxes(model.GetCurves());
+    potential_links_unique_per_curve =
+        GetPotentialLinksUniqueListPerCurve(model.GetCurves());
     std::cout << "Skipping Discretization." << std::endl;
     discretized_curves = model.GetCurves();
-    potential_links_unique_per_curve = potential_links;
   }
   if (force_direct_sum) {
     std::cout << "Starting Direct Summation." << std::endl;
