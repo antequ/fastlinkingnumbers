@@ -61,6 +61,7 @@ public:
    *     between curves.
    */
   void ComputeFromModel(const Model &model, bool force_direct_sum = false,
+                        bool discretize = true,
                         double barnes_hut_init_beta = 2.0,
                         double barnes_hut_beta_limit = 10.0);
 

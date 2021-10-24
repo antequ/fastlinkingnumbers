@@ -45,6 +45,9 @@ DEFINE_string(method, "barneshut",
               "values are 'barneshut' and 'directsum', and this is case "
               "sensitive.");
 
+DEFINE_bool(discretize, true,
+            "If false, then the discretization step is skipped. The input model must be in polyline form.");
+
 DEFINE_double(barnes_hut_init_beta, 2.0,
               "Advanced: sets the initial beta parameter for Barnes–Hut.");
 
